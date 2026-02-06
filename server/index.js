@@ -10,8 +10,24 @@ const MONGODB_URI = process.env.MONGODB_ATLAS_URL || process.env.MONGODB_URI || 
 const DB_NAME = process.env.DB_NAME || 'shopping_mall';
 
 // 미들웨어 설정
-// CORS - 우선 배포 성공을 위해 모든 오리진 허용 (로컬 + Vercel 등)
-app.use(cors());
+// CORS - Vercel 등 모든 도메인에서 API 호출 허용
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+// OPTIONS(프리플라이트) 요청을 여기서 처리해 404 방지
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', req.get('Origin') || '*')
+    res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.set('Access-Control-Max-Age', '86400')
+    return res.sendStatus(204)
+  }
+  next()
+})
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,6 +70,9 @@ async function startServer() {
     const cartRoutes = require('./routes/cartRoutes');
     const orderRoutes = require('./routes/orderRoutes');
     
+    // 연결 테스트용 (브라우저에서 https://...cloudtype.app/api/health 로 확인)
+    app.get('/api/health', (req, res) => res.json({ ok: true, message: '서버 연결됨' }));
+
     // 라우터 등록 (app.listen 전에 반드시 실행)
     app.use('/api/users', userRoutes);
     app.use('/api/auth', authRoutes);

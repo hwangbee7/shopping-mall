@@ -132,8 +132,12 @@ function LoginPage() {
         const errorMessage = typeof raw === 'string' ? raw : '로그인 중 오류가 발생했습니다.'
         alert(errorMessage)
       } else if (error.request) {
-        // 요청은 보냈지만 응답을 받지 못한 경우 (서버가 실행되지 않았거나 네트워크 오류)
-        alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.')
+        // 요청은 보냈지만 응답을 받지 못한 경우 (CORS/네트워크/서버 다운)
+        const url = error.config?.baseURL && error.config?.url
+          ? `${error.config.baseURL.replace(/\/$/, '')}${error.config.url.startsWith('/') ? '' : '/'}${error.config.url}`
+          : '알 수 없음'
+        console.error('로그인 요청 실패 (응답 없음)', { url, error: error.message })
+        alert(`서버에 연결할 수 없습니다.\n\n요청 주소: ${url}\n\n· 브라우저에서 위 주소가 열리는지 확인해보세요.\n· CORS 오류면 F12 → Console을 확인해주세요.`)
       } else {
         // 요청 설정 중 오류가 발생한 경우
         alert('로그인 요청 중 오류가 발생했습니다.')
