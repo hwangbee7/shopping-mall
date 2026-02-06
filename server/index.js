@@ -6,29 +6,18 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-// Cloudtype 내부 DB: MONGODB_URL 우선, 없으면 Atlas·로컬 순
-const MONGODB_URI = process.env.MONGODB_URL || process.env.MONGODB_ATLAS_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+// Cloudtype 내부 DB: MONGODB_URL 우선, 없거나 비어 있으면 Atlas·로컬 순
+const _url = (process.env.MONGODB_URL || '').trim();
+const MONGODB_URI = _url || process.env.MONGODB_ATLAS_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'shopping_mall';
 
 // 미들웨어 설정
-// CORS - Vercel 등 모든 도메인에서 API 호출 허용
+// CORS - Vercel 프론트엔드 주소와 정확히 일치
 app.use(cors({
-  origin: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: 'https://todo-react-8rt5.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
-// OPTIONS(프리플라이트) 요청을 여기서 처리해 404 방지
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', req.get('Origin') || '*')
-    res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    res.set('Access-Control-Max-Age', '86400')
-    return res.sendStatus(204)
-  }
-  next()
-})
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,7 +41,8 @@ async function connectDB() {
     db = client.db(DB_NAME);
     console.log('✅ MongoDB (Native) 연결 성공');
   } catch (error) {
-    console.error('❌ MongoDB 연결 실패:', error);
+    console.error('❌ MongoDB 연결 실패:', error.message || error);
+    console.error('   사용 중인 URI:', MONGODB_URI.replace(/:[^:@]+@/, ':***@'));
     process.exit(1);
   }
 }
