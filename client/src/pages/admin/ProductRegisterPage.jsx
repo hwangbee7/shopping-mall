@@ -45,7 +45,7 @@ function ProductRegisterPage() {
           return
         }
 
-        const response = await axios.get('/api/auth/me', {
+        const response = await axios.get('/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -178,7 +178,7 @@ function ProductRegisterPage() {
         stock: parseInt(formData.stock) || 0
       }
 
-      const response = await axios.post('/api/products', productData)
+      const response = await axios.post('/products', productData)
       
       if (response.data.success) {
         alert('상품이 등록되었습니다!')

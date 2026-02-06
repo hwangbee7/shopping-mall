@@ -69,7 +69,7 @@ function AdminPage() {
           navigate('/login')
           return
         }
-        const response = await axios.get('/api/auth/me', {
+        const response = await axios.get('/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.data.success) {
@@ -97,9 +97,9 @@ function AdminPage() {
       const token = localStorage.getItem('token')
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
       const [ordersRes, productsRes, usersRes] = await Promise.all([
-        axios.get('/api/orders', { headers: authHeaders, params: { limit: 100 } }),
-        axios.get('/api/products', { headers: authHeaders }),
-        axios.get('/api/users', { headers: authHeaders })
+        axios.get('/orders', { headers: authHeaders, params: { limit: 100 } }),
+        axios.get('/products', { headers: authHeaders }),
+        axios.get('/users', { headers: authHeaders })
       ])
       const orders = ordersRes.data?.success ? ordersRes.data.data : []
       const products = productsRes.data?.success ? productsRes.data.data : []
@@ -162,7 +162,7 @@ function AdminPage() {
     if (!token) return
     try {
       setUpdatingOrderId(orderId)
-      await axios.put(`/api/orders/${orderId}`, { orderStatus: newStatus }, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.put(`/orders/${orderId}`, { orderStatus: newStatus }, { headers: { Authorization: `Bearer ${token}` } })
       await fetchDashboardData()
     } catch (err) {
       alert(err.response?.data?.error || '상태 변경에 실패했습니다.')

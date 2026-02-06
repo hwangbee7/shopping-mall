@@ -99,7 +99,7 @@ function LoginPage() {
       }
 
       // 서버 API에 POST 요청으로 로그인 데이터 전송 (Vite proxy 사용)
-      // 서버 엔드포인트: POST /api/auth/login
+      // 서버 엔드포인트: POST /auth/login
       const response = await axios.post('/auth/login', loginData)
       
       // 서버 응답 구조 확인
@@ -120,15 +120,16 @@ function LoginPage() {
         alert('로그인에 성공했습니다! 🎉')
         navigate('/')
       } else {
-        // 서버에서 success: false를 반환한 경우
-        alert(response.data.error || '로그인에 실패했습니다.')
+        // 서버에서 success: false를 반환한 경우 (문자열만 표시)
+        const msg = response.data?.error
+        alert(typeof msg === 'string' ? msg : '로그인에 실패했습니다.')
       }
     } catch (error) {
       // 에러 처리
       if (error.response) {
-        // 서버가 응답을 반환했지만 오류 상태 코드인 경우
-        // 서버 응답 구조: { success: false, error: '에러 메시지' }
-        const errorMessage = error.response.data?.error || '로그인 중 오류가 발생했습니다.'
+        // 서버가 응답을 반환했지만 오류 상태 코드인 경우 (객체면 문자열로)
+        const raw = error.response.data?.error
+        const errorMessage = typeof raw === 'string' ? raw : '로그인 중 오류가 발생했습니다.'
         alert(errorMessage)
       } else if (error.request) {
         // 요청은 보냈지만 응답을 받지 못한 경우 (서버가 실행되지 않았거나 네트워크 오류)

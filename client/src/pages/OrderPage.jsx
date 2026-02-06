@@ -80,7 +80,7 @@ function OrderPage() {
   const handleUpdateQuantity = async (itemId, newQuantity) => {
     try {
       const response = await axios.put(
-        `/api/cart/items/${itemId}`,
+        `/cart/items/${itemId}`,
         { quantity: newQuantity },
         { headers: getAuthHeaders() }
       )

@@ -39,7 +39,7 @@ function ProductManagePage({ onBack }) {
       setError(null)
       
       // 서버 API 호출 (페이지네이션 파라미터 포함)
-      const response = await axios.get('/api/products', {
+      const response = await axios.get('/products', {
         params: {
           page: page,
           limit: 2 // 페이지당 2개
@@ -118,11 +118,11 @@ function ProductManagePage({ onBack }) {
 
       if (editingProduct) {
         // 수정
-        await axios.put(`/api/products/${editingProduct._id}`, productData)
+        await axios.put(`/products/${editingProduct._id}`, productData)
         alert('상품이 수정되었습니다.')
       } else {
         // 등록
-        await axios.post('/api/products', productData)
+        await axios.post('/products', productData)
         alert('상품이 등록되었습니다.')
       }
 
@@ -144,7 +144,7 @@ function ProductManagePage({ onBack }) {
     if (!window.confirm('정말 삭제하시겠습니까?')) return
 
     try {
-      await axios.delete(`/api/products/${productId}`)
+      await axios.delete(`/products/${productId}`)
       alert('상품이 삭제되었습니다.')
       fetchProducts(pagination.currentPage) // 현재 페이지 새로고침
     } catch (error) {

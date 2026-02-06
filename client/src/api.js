@@ -1,7 +1,13 @@
 import axios from 'axios'
 
-// API 주소: 끝에 /api 필수. VITE_API_URL 없으면 아래 기본값 사용
-const baseURL = (import.meta.env.VITE_API_URL || 'https://port-0-shopping-mall-mkrzhfy7035ed316.sel5.cloudtype.app/api').replace(/\/$/, '')
-axios.defaults.baseURL = baseURL
+// 백엔드 API 절대 경로 고정 (상대 경로 사용 시 Vercel 도메인으로 요청 감)
+const DEFAULT_BASE_URL = 'https://port-0-shopping-mall-mkrzhfy7035ed316.sel5.cloudtype.app/api'
+const envUrl = (import.meta.env.VITE_API_URL || '').toString().trim().replace(/\/$/, '')
+const baseURL = envUrl && envUrl.startsWith('http') ? envUrl : DEFAULT_BASE_URL
 
-export default axios
+const api = axios.create({
+  baseURL,
+  headers: { 'Content-Type': 'application/json' }
+})
+
+export default api
