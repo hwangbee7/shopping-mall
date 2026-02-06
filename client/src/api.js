@@ -4,7 +4,8 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: 'https://port-0-shopping-mall-mkrzhfy7035ed316.sel5.cloudtype.app/api',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000
+  timeout: 15000,
+  withCredentials: true
 })
 
 export default api
