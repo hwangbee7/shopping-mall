@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Shopping mall demo server with Node.js, Express, and MongoDB",
   "main": "index.js",
-  "engines": { "node": "18.x" },
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js","kill5000":"node scripts/kill-port-5000.js"
+    "dev": "nodemon index.js",
+    "kill5000": "node scripts/kill-port-5000.js"
   },
   "keywords": [
     "express",
@@ -21,7 +24,6 @@
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
-    "mongodb": "^6.3.0",
     "mongoose": "^5.13.22"
   },
   "devDependencies": {

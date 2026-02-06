@@ -1,5 +1,4 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
@@ -56,13 +55,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB 연결
-let db;
-let client;
-
+// MongoDB 연결 (Mongoose 5.x = mongodb 드라이버 3.x → Cloudtype MongoDB 4.0 호환)
 async function connectDB() {
   try {
-    // Mongoose 연결
     const mongooseUri = MONGODB_URI.includes('mongodb://') || MONGODB_URI.includes('mongodb+srv://') 
       ? `${MONGODB_URI}/${DB_NAME}` 
       : `mongodb://${MONGODB_URI}/${DB_NAME}`;
@@ -73,13 +68,7 @@ async function connectDB() {
       useFindAndModify: false,
       useCreateIndex: true
     });
-    console.log('✅ MongoDB (Mongoose) 연결 성공');
-    
-    // 기존 MongoDB 네이티브 드라이버 연결도 유지 (다른 API용)
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    db = client.db(DB_NAME);
-    console.log('✅ MongoDB (Native) 연결 성공');
+    console.log('✅ MongoDB 연결 성공');
   } catch (error) {
     console.error('❌ MongoDB 연결 실패:', error.message || error);
     console.error('   사용 중인 URI:', MONGODB_URI.replace(/:[^:@]+@/, ':***@'));
@@ -192,11 +181,7 @@ process.on('SIGINT', async () => {
   console.log('\n서버 종료 중...');
   if (mongoose.connection.readyState === 1) {
     await mongoose.connection.close();
-    console.log('MongoDB (Mongoose) 연결이 종료되었습니다.');
-  }
-  if (client) {
-    await client.close();
-    console.log('MongoDB (Native) 연결이 종료되었습니다.');
+    console.log('MongoDB 연결이 종료되었습니다.');
   }
   process.exit(0);
 });
