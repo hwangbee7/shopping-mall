@@ -5,8 +5,13 @@ const jwt = require('jsonwebtoken');
 // JWT 시크릿 키 (환경 변수에서 가져오거나 기본값 사용)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// 로그인
+// 로그인 (크로스오리진 응답에 CORS 헤더 명시)
 const login = async (req, res) => {
+  const origin = req.get('Origin');
+  if (origin && origin.includes('todo-react-8rt5.vercel.app')) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+  }
   try {
     const { email, password } = req.body;
 
@@ -66,6 +71,11 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('로그인 오류:', error);
+    const o = req.get('Origin');
+    if (o && o.includes('todo-react-8rt5.vercel.app')) {
+      res.set('Access-Control-Allow-Origin', o);
+      res.set('Access-Control-Allow-Credentials', 'true');
+    }
     res.status(500).json({ 
       success: false, 
       error: '로그인 중 오류가 발생했습니다.' 

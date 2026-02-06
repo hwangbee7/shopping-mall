@@ -12,11 +12,16 @@ const MONGODB_URI = _url || process.env.MONGODB_ATLAS_URL || process.env.MONGODB
 const DB_NAME = process.env.DB_NAME || 'shopping_mall';
 
 // ========== 1. CORS (모든 app.use 라우터보다 반드시 최상단) ==========
-// Origin: 끝에 / 없이 정확히 일치
 const FRONT_ORIGIN = 'https://todo-react-8rt5.vercel.app'.replace(/\/$/, '');
 
 app.use(cors({
-  origin: FRONT_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin || origin === FRONT_ORIGIN || origin.replace(/\/$/, '') === FRONT_ORIGIN || origin.includes('todo-react-8rt5.vercel.app')) {
+      callback(null, origin || FRONT_ORIGIN);
+    } else {
+      callback(null, FRONT_ORIGIN);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -26,12 +31,24 @@ app.use(cors({
 // OPTIONS(프리플라이트) 처리 - CORS 다음, 라우터 전
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', FRONT_ORIGIN);
+    const o = req.get('Origin');
+    const allowOrigin = (!o || o.includes('todo-react-8rt5.vercel.app')) ? (o || FRONT_ORIGIN) : FRONT_ORIGIN;
+    res.set('Access-Control-Allow-Origin', allowOrigin);
     res.set('Access-Control-Allow-Credentials', 'true');
     res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.set('Access-Control-Max-Age', '86400');
     return res.sendStatus(204);
+  }
+  next();
+});
+
+// 모든 API 응답에 CORS 헤더 강제 (로그인 등 크로스오리진 응답 읽기 보장)
+app.use((req, res, next) => {
+  const o = req.get('Origin');
+  if (o && o.includes('todo-react-8rt5.vercel.app')) {
+    res.set('Access-Control-Allow-Origin', o);
+    res.set('Access-Control-Allow-Credentials', 'true');
   }
   next();
 });
@@ -50,7 +67,12 @@ async function connectDB() {
       ? `${MONGODB_URI}/${DB_NAME}` 
       : `mongodb://${MONGODB_URI}/${DB_NAME}`;
     
-    await mongoose.connect(mongooseUri);
+    await mongoose.connect(mongooseUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useFindAndModify: false,
+      useCreateIndex: true
+    });
     console.log('✅ MongoDB (Mongoose) 연결 성공');
     
     // 기존 MongoDB 네이티브 드라이버 연결도 유지 (다른 API용)
@@ -81,10 +103,22 @@ async function startServer() {
     const cartRoutes = require('./routes/cartRoutes');
     const orderRoutes = require('./routes/orderRoutes');
     
-    // ========== 2. 라우터 (프론트 /api/auth/login 등 → /api prefix, 404 방지용 직접 라우트) ==========
+    // ========== 2. 라우터 (404 방지: login 경로는 어떤 형태로 오든 처리) ==========
+    // POST .../auth/login 형태면 무조건 로그인 핸들러로 (Cloudtype 경로 차이 대응)
+    app.post('*', (req, res, next) => {
+      const p = (req.path || req.url || '').split('?')[0];
+      if (p.includes('auth') && p.includes('login')) {
+        return authController.login(req, res);
+      }
+      next();
+    });
+
     app.get('/api/health', (req, res) => res.json({ ok: true, message: '서버 연결됨' }));
     app.get('/api/products', productController.getAllProducts);
     app.post('/api/auth/login', authController.login);
+    app.post('/api/auth/login/', authController.login);
+    app.post('/auth/login', authController.login);
+    app.post('/auth/login/', authController.login);
 
     app.use('/api/users', userRoutes);
     app.use('/api/auth', authRoutes);
