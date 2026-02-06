@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment variables (비밀번호, API 키 - 절대 커밋 금지)
+.env
+.env.local
+.env.*.local
+controllers/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
