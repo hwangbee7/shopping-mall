@@ -127,10 +127,13 @@ function LoginPage() {
     } catch (error) {
       // 에러 처리
       if (error.response) {
-        // 서버가 응답을 반환했지만 오류 상태 코드인 경우 (객체면 문자열로)
         const raw = error.response.data?.error
-        const errorMessage = typeof raw === 'string' ? raw : '로그인 중 오류가 발생했습니다.'
-        alert(errorMessage)
+        const errorMessage = typeof raw === 'string' ? raw : (error.response.data?.message || '로그인 중 오류가 발생했습니다.')
+        if (error.response.status === 404) {
+          alert(`요청 경로를 찾을 수 없습니다 (404). 서버 재배포 후 다시 시도해주세요.\n\n${errorMessage}`)
+        } else {
+          alert(errorMessage)
+        }
       } else if (error.request) {
         // 요청은 보냈지만 응답을 받지 못한 경우 (CORS/네트워크/서버 다운)
         const url = error.config?.baseURL && error.config?.url
