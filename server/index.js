@@ -11,13 +11,31 @@ const _url = (process.env.MONGODB_URL || '').trim();
 const MONGODB_URI = _url || process.env.MONGODB_ATLAS_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'shopping_mall';
 
-// 미들웨어 설정
-// CORS - Vercel 프론트엔드 주소와 정확히 일치
+// ========== 1. CORS·OPTIONS (모든 라우터보다 반드시 먼저) ==========
+const FRONT_ORIGIN = 'https://todo-react-8rt5.vercel.app';
+
+// OPTIONS(프리플라이트) 최상단 처리 - 어떤 경로든 OPTIONS는 204, 404 방지
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', FRONT_ORIGIN);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Max-Age', '86400');
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// CORS - Vercel 프론트엔드와 정확히 일치
 app.use(cors({
-  origin: 'https://todo-react-8rt5.vercel.app',
+  origin: FRONT_ORIGIN,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -61,16 +79,24 @@ async function startServer() {
     const cartRoutes = require('./routes/cartRoutes');
     const orderRoutes = require('./routes/orderRoutes');
     
-    // 연결 테스트용 (브라우저에서 https://...cloudtype.app/api/health 로 확인)
+    // ========== 2. 라우터 (프론트엔드 /api/auth/login 요청 → /api prefix 필수) ==========
+    // 연결 테스트용
     app.get('/api/health', (req, res) => res.json({ ok: true, message: '서버 연결됨' }));
 
-    // 라우터 등록 (app.listen 전에 반드시 실행)
+    // /api prefix로 등록 → POST /api/auth/login 등 처리
     app.use('/api/users', userRoutes);
-    app.use('/api/auth', authRoutes);
+    app.use('/api/auth', authRoutes);   // POST /api/auth/login, GET /api/auth/me
     app.use('/api/products', productRoutes);
     app.use('/api/cart', cartRoutes);
     app.use('/api/orders', orderRoutes);
-    console.log('✅ 라우터 등록 완료');
+
+    // 프록시가 /api 를 제거할 경우 대비
+    app.use('/auth', authRoutes);
+    app.use('/users', userRoutes);
+    app.use('/products', productRoutes);
+    app.use('/cart', cartRoutes);
+    app.use('/orders', orderRoutes);
+    console.log('✅ 라우터 등록 완료 (/api/auth, /api/users 등)');
     
     // 에러 핸들링 미들웨어 (라우터 등록 후)
     app.use((err, req, res, next) => {
