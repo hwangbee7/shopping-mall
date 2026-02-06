@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -38,7 +38,7 @@ function OrderListPage() {
           navigate('/login')
           return
         }
-        const response = await axios.get('/api/orders', {
+        const response = await axios.get('/orders', {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` }
         })

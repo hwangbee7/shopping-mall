@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -26,7 +26,7 @@ function OrderDetailPage() {
           navigate('/login')
           return
         }
-        const response = await axios.get(`/api/orders/${id}`, {
+        const response = await axios.get(`/orders/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data?.success && response.data.data) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -23,7 +23,7 @@ function MainPage() {
         setError(null)
         
         // 전체 상품 가져오기 (limit을 크게 설정하여 전체 조회)
-        const response = await axios.get('/api/products', {
+        const response = await axios.get('/products', {
           params: {
             limit: 10000 // 전체 조회를 위해 큰 값 설정
           }

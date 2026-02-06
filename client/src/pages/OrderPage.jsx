@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -39,7 +39,7 @@ function OrderPage() {
           navigate('/login')
           return
         }
-        const response = await axios.get('/api/cart', {
+        const response = await axios.get('/cart', {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data.success) {
@@ -98,7 +98,7 @@ function OrderPage() {
   const handleRemoveItem = async (itemId) => {
     if (!window.confirm('이 상품을 주문에서 제거하시겠습니까?')) return
     try {
-      const response = await axios.delete(`/api/cart/items/${itemId}`, {
+      const response = await axios.delete(`/cart/items/${itemId}`, {
         headers: getAuthHeaders()
       })
       if (response.data.success) {
@@ -180,7 +180,7 @@ function OrderPage() {
       alert('배송 정보가 올바르지 않습니다. 다시 입력해 주세요.')
       return
     }
-    const response = await axios.post('/api/orders', payload, {
+    const response = await axios.post('/orders', payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
@@ -188,7 +188,7 @@ function OrderPage() {
     })
     if (response.data && response.data.success) {
       try {
-        await axios.delete('/api/cart', {
+        await axios.delete('/cart', {
           headers: { Authorization: `Bearer ${token}` }
         })
       } catch (_) {}

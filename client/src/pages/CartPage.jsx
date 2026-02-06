@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -24,7 +24,7 @@ function CartPage() {
           return
         }
 
-        const response = await axios.get('/api/cart', {
+        const response = await axios.get('/cart', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -58,7 +58,7 @@ function CartPage() {
       const token = localStorage.getItem('token')
       
       const response = await axios.put(
-        `/api/cart/items/${itemId}`,
+        `/cart/items/${itemId}`,
         { quantity: newQuantity },
         {
           headers: {
@@ -87,7 +87,7 @@ function CartPage() {
       const token = localStorage.getItem('token')
       
       const response = await axios.delete(
-        `/api/cart/items/${itemId}`,
+        `/cart/items/${itemId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -116,7 +116,7 @@ function CartPage() {
     try {
       const token = localStorage.getItem('token')
       
-      const response = await axios.delete('/api/cart', {
+      const response = await axios.delete('/cart', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -23,7 +23,7 @@ function LoginPage() {
         
         if (token) {
           // 토큰이 있으면 서버에서 유저 정보 확인 (Vite proxy 사용)
-          const response = await axios.get('/api/auth/me', {
+          const response = await axios.get('/auth/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -100,7 +100,7 @@ function LoginPage() {
 
       // 서버 API에 POST 요청으로 로그인 데이터 전송 (Vite proxy 사용)
       // 서버 엔드포인트: POST /api/auth/login
-      const response = await axios.post('/api/auth/login', loginData)
+      const response = await axios.post('/auth/login', loginData)
       
       // 서버 응답 구조 확인
       // 성공 시: { success: true, message: '...', data: { user: {...}, token: '...' } }

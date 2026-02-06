@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import '../App.css'
 
 function RegisterPage() {
@@ -114,7 +114,7 @@ function RegisterPage() {
       }
 
       // 서버 API에 POST 요청으로 회원가입 데이터 전송 (Vite proxy 사용)
-      const response = await axios.post('/api/users', userData)
+      const response = await axios.post('/users', userData)
       
       // 서버 응답 확인
       if (response.data.success) {

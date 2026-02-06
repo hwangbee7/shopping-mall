@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import '../App.css'
 
 function Navbar() {
@@ -15,7 +15,7 @@ function Navbar() {
       const token = localStorage.getItem('token')
       
       if (token) {
-        const response = await axios.get('/api/cart', {
+        const response = await axios.get('/cart', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -41,7 +41,7 @@ function Navbar() {
         
         if (token) {
           // 토큰이 있으면 서버에서 유저 정보 가져오기 (Vite proxy 사용)
-          const response = await axios.get('/api/auth/me', {
+          const response = await axios.get('/auth/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axios from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -21,7 +21,7 @@ function ProductDetailPage() {
         setIsLoading(true)
         setError(null)
         
-        const response = await axios.get(`/api/products/${id}`)
+        const response = await axios.get(`/products/${id}`)
         
         if (response.data.success) {
           setProduct(response.data.data)
@@ -75,7 +75,7 @@ function ProductDetailPage() {
 
       // 장바구니에 아이템 추가 API 호출
       const response = await axios.post(
-        '/api/cart/items',
+        '/cart/items',
         {
           productId: product._id,
           quantity: quantity,
