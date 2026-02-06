@@ -11,10 +11,19 @@ const _url = (process.env.MONGODB_URL || '').trim();
 const MONGODB_URI = _url || process.env.MONGODB_ATLAS_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'shopping_mall';
 
-// ========== 1. CORS·OPTIONS (모든 라우터보다 반드시 먼저) ==========
-const FRONT_ORIGIN = 'https://todo-react-8rt5.vercel.app';
+// ========== 1. CORS (모든 app.use 라우터보다 반드시 최상단) ==========
+// Origin: 끝에 / 없이 정확히 일치
+const FRONT_ORIGIN = 'https://todo-react-8rt5.vercel.app'.replace(/\/$/, '');
 
-// OPTIONS(프리플라이트) 최상단 처리 - 어떤 경로든 OPTIONS는 204, 404 방지
+app.use(cors({
+  origin: FRONT_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
+}));
+
+// OPTIONS(프리플라이트) 처리 - CORS 다음, 라우터 전
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     res.set('Access-Control-Allow-Origin', FRONT_ORIGIN);
@@ -26,15 +35,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// CORS - Vercel 프론트엔드와 정확히 일치
-app.use(cors({
-  origin: FRONT_ORIGIN,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204
-}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -75,28 +75,30 @@ async function startServer() {
     console.log('📦 라우터 로드 중...');
     const userRoutes = require('./routes/userRoutes');
     const authRoutes = require('./routes/authRoutes');
+    const authController = require('./controllers/authController');
     const productRoutes = require('./routes/productRoutes');
+    const productController = require('./controllers/productController');
     const cartRoutes = require('./routes/cartRoutes');
     const orderRoutes = require('./routes/orderRoutes');
     
-    // ========== 2. 라우터 (프론트엔드 /api/auth/login 요청 → /api prefix 필수) ==========
-    // 연결 테스트용
+    // ========== 2. 라우터 (프론트 /api/auth/login 등 → /api prefix, 404 방지용 직접 라우트) ==========
     app.get('/api/health', (req, res) => res.json({ ok: true, message: '서버 연결됨' }));
+    app.get('/api/products', productController.getAllProducts);
+    app.post('/api/auth/login', authController.login);
 
-    // /api prefix로 등록 → POST /api/auth/login 등 처리
     app.use('/api/users', userRoutes);
-    app.use('/api/auth', authRoutes);   // POST /api/auth/login, GET /api/auth/me
+    app.use('/api/auth', authRoutes);
     app.use('/api/products', productRoutes);
     app.use('/api/cart', cartRoutes);
     app.use('/api/orders', orderRoutes);
 
-    // 프록시가 /api 를 제거할 경우 대비
+    // 프록시가 /api 제거 시 대비 (선택)
     app.use('/auth', authRoutes);
     app.use('/users', userRoutes);
     app.use('/products', productRoutes);
     app.use('/cart', cartRoutes);
     app.use('/orders', orderRoutes);
-    console.log('✅ 라우터 등록 완료 (/api/auth, /api/users 등)');
+    console.log('✅ 라우터 등록 완료 (모든 API: /api prefix)');
     
     // 에러 핸들링 미들웨어 (라우터 등록 후)
     app.use((err, req, res, next) => {
