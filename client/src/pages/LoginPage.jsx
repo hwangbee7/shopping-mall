@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import axios from '../api'
+import axios, { baseURL } from '../api'
 import Navbar from './Navbar'
 import '../App.css'
 
@@ -14,6 +14,30 @@ function LoginPage() {
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingToken, setIsCheckingToken] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState(null)
+  const [connectionError, setConnectionError] = useState('')
+
+  const healthUrl = `${baseURL}/health`
+
+  // 서버 연결 상태 확인 (로그인 페이지 로드 시 1회)
+  useEffect(() => {
+    let cancelled = false
+    const check = async () => {
+      try {
+        const res = await axios.get('/health')
+        if (!cancelled && res.data?.ok) setConnectionStatus('ok')
+        else if (!cancelled) { setConnectionStatus('fail'); setConnectionError('응답 형식 오류') }
+      } catch (e) {
+        if (cancelled) return
+        setConnectionStatus('fail')
+        if (e.response) setConnectionError(`HTTP ${e.response.status}`)
+        else if (e.request) setConnectionError(e.code ? `응답 없음 (${e.code})` : '응답 없음 - 서버 중단 또는 CORS')
+        else setConnectionError(e.message || '요청 실패')
+      }
+    }
+    check()
+    return () => { cancelled = true }
+  }, [])
 
   // 컴포넌트 마운트 시 토큰 확인 및 유효성 검증
   useEffect(() => {
@@ -135,12 +159,12 @@ function LoginPage() {
           alert(errorMessage)
         }
       } else if (error.request) {
-        // 요청은 보냈지만 응답을 받지 못한 경우 (CORS/네트워크/서버 다운)
         const url = error.config?.baseURL && error.config?.url
           ? `${error.config.baseURL.replace(/\/$/, '')}${error.config.url.startsWith('/') ? '' : '/'}${error.config.url}`
           : '알 수 없음'
-        console.error('로그인 요청 실패 (응답 없음)', { url, error: error.message })
-        alert(`서버에 연결할 수 없습니다.\n\n요청 주소: ${url}\n\n· 브라우저에서 위 주소가 열리는지 확인해보세요.\n· CORS 오류면 F12 → Console을 확인해주세요.`)
+        const code = error.code || ''
+        console.error('로그인 요청 실패 (응답 없음)', { url, code, error: error.message })
+        alert(`서버에 연결할 수 없습니다.\n\n요청 주소: ${url}\n${code ? `오류 코드: ${code}\n` : ''}\n▼ 아래 주소를 브라우저 주소창에 붙여 넣어 보세요.\n${healthUrl}\n· 열리면: 서버는 동작 중. CORS 설정을 확인하세요.\n· 안 열리면: Cloudtype 배포 로그에서 서버 오류를 확인하세요.`)
       } else {
         // 요청 설정 중 오류가 발생한 경우
         alert('로그인 요청 중 오류가 발생했습니다.')
@@ -160,6 +184,20 @@ function LoginPage() {
           <h1>로그인</h1>
           <p>계정에 로그인하여 쇼핑을 시작하세요</p>
         </div>
+
+        {connectionStatus !== null && (
+          <div className={`server-check ${connectionStatus === 'ok' ? 'server-check-ok' : 'server-check-fail'}`}>
+            {connectionStatus === 'ok' ? (
+              <>✅ 서버 연결됨</>
+            ) : (
+              <>
+                ❌ 서버 연결 실패: {connectionError}
+                <br />
+                <a href={healthUrl} target="_blank" rel="noopener noreferrer" className="server-check-link">연결 테스트 주소 열기</a>
+              </>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           {/* 이메일 */}
