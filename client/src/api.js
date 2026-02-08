@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 // 백엔드 API 주소 (Vercel 환경 변수 VITE_API_URL 설정 시 우선 사용)
-const baseURL = (import.meta.env.VITE_API_URL || 'https://port-0-shopping-mall-mkrzhfy7035ed316.sel3.cloudtype.app/api').replace(/\/$/, '')
+// 서버는 /api 경로 아래에 라우트가 있으므로, baseURL 끝에 /api 가 있어야 합니다.
+let baseURL = (import.meta.env.VITE_API_URL || 'https://port-0-shopping-mall-mkrzhfy7035ed316.sel3.cloudtype.app/api').replace(/\/$/, '')
+if (!baseURL.endsWith('/api')) baseURL = baseURL + '/api'
 
 const api = axios.create({
   baseURL,

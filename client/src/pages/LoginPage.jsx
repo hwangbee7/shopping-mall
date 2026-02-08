@@ -46,21 +46,18 @@ function LoginPage() {
         const token = localStorage.getItem('token')
         
         if (token) {
-          // 토큰이 있으면 서버에서 유저 정보 확인 (Vite proxy 사용)
           const response = await axios.get('/auth/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           })
           
-          // 유효한 토큰이면 메인 페이지로 리다이렉트
           if (response.data.success) {
             navigate('/')
             return
           }
         }
       } catch (error) {
-        // 토큰이 유효하지 않은 경우 localStorage에서 제거
         if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
@@ -79,7 +76,6 @@ function LoginPage() {
       ...prev,
       [name]: value
     }))
-    // 에러 초기화
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -90,7 +86,6 @@ function LoginPage() {
 
   const validateForm = () => {
     const newErrors = {}
-
     if (!formData.email.trim()) {
       newErrors.email = '이메일을 입력해주세요.'
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
@@ -99,57 +94,39 @@ function LoginPage() {
     if (!formData.password) {
       newErrors.password = '비밀번호를 입력해주세요.'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    // 폼 유효성 검사
-    if (!validateForm()) {
-      return
-    }
+    if (!validateForm()) return
 
     setIsSubmitting(true)
     
     try {
-      // 서버로 전송할 로그인 데이터 준비
-      // 서버의 authController.login에서 요구하는 형식: { email, password }
       const loginData = {
         email: formData.email.trim().toLowerCase(),
         password: formData.password
       }
 
-      // 서버 API에 POST 요청으로 로그인 데이터 전송 (Vite proxy 사용)
-      // 서버 엔드포인트: POST /auth/login
       const response = await axios.post('/auth/login', loginData)
       
-      // 서버 응답 구조 확인
-      // 성공 시: { success: true, message: '...', data: { user: {...}, token: '...' } }
-      // 실패 시: { success: false, error: '...' }
       if (response.data.success) {
-        // JWT 토큰을 localStorage에 저장
-        if (response.data.data && response.data.data.token) {
-          localStorage.setItem('token', response.data.data.token)
-          
-          // 사용자 정보도 localStorage에 저장 (선택사항)
-          if (response.data.data.user) {
-            localStorage.setItem('user', JSON.stringify(response.data.data.user))
-          }
-        }
-        
-        // 성공 메시지 표시 후 메인 페이지로 이동
+        const data = response.data.data || {}
+        const token = data.token
+        const user = data.user
+        if (token) localStorage.setItem('token', token)
+        if (user) localStorage.setItem('user', JSON.stringify(user))
+        if (!token || !user) console.warn('로그인 응답에 token 또는 user가 없습니다.', data)
+
         alert('로그인에 성공했습니다! 🎉')
         navigate('/')
       } else {
-        // 서버에서 success: false를 반환한 경우 (문자열만 표시)
         const msg = response.data?.error
         alert(typeof msg === 'string' ? msg : '로그인에 실패했습니다.')
       }
     } catch (error) {
-      // 에러 처리
       if (error.response) {
         const raw = error.response.data?.error
         const errorMessage = typeof raw === 'string' ? raw : (error.response.data?.message || '로그인 중 오류가 발생했습니다.')
@@ -166,11 +143,9 @@ function LoginPage() {
         console.error('로그인 요청 실패 (응답 없음)', { url, code, error: error.message })
         alert(`서버에 연결할 수 없습니다.\n\n요청 주소: ${url}\n${code ? `오류 코드: ${code}\n` : ''}\n▼ 아래 주소를 브라우저 주소창에 붙여 넣어 보세요.\n${healthUrl}\n· 열리면: 서버는 동작 중. CORS 설정을 확인하세요.\n· 안 열리면: Cloudtype 배포 로그에서 서버 오류를 확인하세요.`)
       } else {
-        // 요청 설정 중 오류가 발생한 경우
         alert('로그인 요청 중 오류가 발생했습니다.')
       }
     } finally {
-      // 성공/실패와 관계없이 로딩 상태 해제
       setIsSubmitting(false)
     }
   }
@@ -200,7 +175,6 @@ function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="login-form">
-          {/* 이메일 */}
           <div className="form-group">
             <label htmlFor="email">이메일</label>
             <div className="input-wrapper">
@@ -218,7 +192,6 @@ function LoginPage() {
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
 
-          {/* 비밀번호 */}
           <div className="form-group">
             <label htmlFor="password">비밀번호</label>
             <div className="input-wrapper">
@@ -244,7 +217,6 @@ function LoginPage() {
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
-          {/* 제출 버튼 */}
           <button
             type="submit"
             className="submit-button login-submit"
@@ -253,7 +225,6 @@ function LoginPage() {
             {isSubmitting ? '로그인 중...' : '로그인'}
           </button>
 
-          {/* 회원가입 링크 */}
           <div className="login-footer">
             <p>
               계정이 없으신가요? <Link to="/signup" className="footer-link">회원가입</Link>

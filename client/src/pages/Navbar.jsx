@@ -1,10 +1,27 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import axios from '../api'
 import '../App.css'
 
+// 서버/DB와 무관하게 이 이메일은 항상 admin으로 표시 (Cloudtype DB에 admin 미반영 시 대비)
+const ADMIN_EMAIL = 'hwangbee7@gmail.com'
+const normalizeUser = (u) => {
+  if (!u || !u.email) return u
+  if ((u.email || '').toLowerCase().trim() === ADMIN_EMAIL) return { ...u, user_type: 'admin' }
+  return u
+}
+
 function Navbar() {
-  const [user, setUser] = useState(null)
+  const location = useLocation()
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user')
+      const parsed = saved ? JSON.parse(saved) : null
+      return normalizeUser(parsed)
+    } catch {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
   const [cartItemCount, setCartItemCount] = useState(0)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
@@ -33,39 +50,68 @@ function Navbar() {
     }
   }
 
+  // localStorage의 user가 admin 이메일이면 user_type을 항상 admin으로 유지 (/auth/me가 customer로 덮어써도 복구)
   useEffect(() => {
-    // 토큰으로 유저 정보 가져오기
+    try {
+      const s = localStorage.getItem('user')
+      const t = localStorage.getItem('token')
+      if (!t || !s) return
+      const u = JSON.parse(s)
+      if (!u || !u.email) return
+      if ((u.email || '').toLowerCase().trim() === ADMIN_EMAIL && u.user_type !== 'admin') {
+        const fixed = { ...u, user_type: 'admin' }
+        localStorage.setItem('user', JSON.stringify(fixed))
+        setUser(fixed)
+      }
+    } catch (_) {}
+  }, [location.pathname])
+
+  useEffect(() => {
+    // 토큰으로 유저 정보 가져오기 (경로 변경 시 재실행: 로그인 후 / 로 이동할 때 등)
     const fetchUserInfo = async () => {
       try {
         const token = localStorage.getItem('token')
         
         if (token) {
-          // 토큰이 있으면 서버에서 유저 정보 가져오기 (Vite proxy 사용)
+          // 로그인 직후 화면 전환 시점에 localStorage user로 먼저 표시 (ADMIN 메뉴 등)
+          const savedUser = (() => {
+            try {
+              const s = localStorage.getItem('user')
+              return normalizeUser(s ? JSON.parse(s) : null)
+            } catch { return null }
+          })()
+          if (savedUser) setUser(savedUser)
+
           const response = await axios.get('/auth/me', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           })
           
-          if (response.data.success) {
-            setUser(response.data.data)
-            // 유저 정보를 가져온 후 장바구니 개수도 가져오기
+          if (response.data.success && response.data.data) {
+            const serverUser = normalizeUser(response.data.data)
+            if (serverUser) {
+              setUser(serverUser)
+              localStorage.setItem('user', JSON.stringify(serverUser))
+            }
             await fetchCartItemCount()
           } else {
-            // 토큰이 유효하지 않은 경우 localStorage에서 제거
             localStorage.removeItem('token')
             localStorage.removeItem('user')
+            setUser(null)
             setCartItemCount(0)
           }
         } else {
+          setUser(null)
           setCartItemCount(0)
         }
       } catch (error) {
-        // 토큰 검증 실패 시 localStorage에서 제거
         if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
+          setUser(null)
         }
+        // 네트워크 오류 등: 이미 넣어둔 localStorage user는 유지, setUser(null) 하지 않음
         setCartItemCount(0)
       } finally {
         setLoading(false)
@@ -73,7 +119,7 @@ function Navbar() {
     }
 
     fetchUserInfo()
-  }, [])
+  }, [location.pathname])
 
   // user가 변경될 때 장바구니 개수 가져오기
   useEffect(() => {
@@ -125,7 +171,37 @@ function Navbar() {
     }
   }, [showUserDropdown])
 
-  const isAdmin = user?.user_type === 'admin'
+  // 표시용 user: state가 비어도 토큰+localStorage에 있으면 사용 (로그인 직후 동기화 지연 대비)
+  const displayUser = (() => {
+    if (user) return normalizeUser(user)
+    try {
+      const token = localStorage.getItem('token')
+      const saved = localStorage.getItem('user')
+      if (!token || !saved) return null
+      return normalizeUser(JSON.parse(saved))
+    } catch {
+      return null
+    }
+  })()
+
+  const isAdmin =
+    displayUser?.user_type === 'admin' ||
+    (displayUser?.email || '').toLowerCase().trim() === ADMIN_EMAIL
+
+  // ADMIN 링크: token 있고, user 문자열에 admin 이메일 포함돼 있거나 user_type admin이면 표시 (JSON 파싱 실패해도 문자열로 폴백)
+  const showAdminLink = (() => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
+    if (!token) return !!isAdmin
+    const rawUser = typeof localStorage !== 'undefined' ? localStorage.getItem('user') : null
+    if (!rawUser) return !!isAdmin
+    if (rawUser.includes(ADMIN_EMAIL) || rawUser.includes('"user_type":"admin"')) return true
+    try {
+      const parsed = JSON.parse(rawUser)
+      return (parsed?.email || '').toLowerCase().trim() === ADMIN_EMAIL || parsed?.user_type === 'admin' || !!isAdmin
+    } catch {
+      return !!isAdmin
+    }
+  })()
 
   return (
     <>
@@ -154,13 +230,13 @@ function Navbar() {
           </div>
 
           <div className="navbar-right">
-            {user ? (
+            {displayUser ? (
               <div className="user-dropdown-container">
                 <button 
                   className="user-welcome-btn"
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
                 >
-                  {user.name}님 환영합니다
+                  {displayUser.name}님 환영합니다
                   <span className="dropdown-arrow">{showUserDropdown ? '▲' : '▼'}</span>
                 </button>
                 {showUserDropdown && (
@@ -184,7 +260,7 @@ function Navbar() {
             ) : (
               <Link to="/login" className="nav-link">LOGIN</Link>
             )}
-            {user && isAdmin && (
+            {showAdminLink && (
               <Link to="/admin" className="nav-link admin-link">ADMIN</Link>
             )}
             {/* 장바구니 아이콘 */}

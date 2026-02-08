@@ -5,10 +5,15 @@ const jwt = require('jsonwebtoken');
 // JWT 시크릿 키 (환경 변수에서 가져오거나 기본값 사용)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// 로그인 (크로스오리진 응답에 CORS 헤더 명시)
+// 로그인 (크로스오리진 응답에 CORS 헤더 명시 - Vercel + localhost 허용)
 const login = async (req, res) => {
   const origin = req.get('Origin');
-  if (origin && origin.includes('todo-react-8rt5.vercel.app')) {
+  const allow = origin && (
+    origin.includes('todo-react-8rt5.vercel.app') ||
+    origin.includes('todo-react-8rt5-') ||
+    /^http:\/\/localhost(:\d+)?$/.test(origin)
+  );
+  if (allow) {
     res.set('Access-Control-Allow-Origin', origin);
     res.set('Access-Control-Allow-Credentials', 'true');
   }
@@ -45,12 +50,16 @@ const login = async (req, res) => {
       });
     }
 
+    // 특정 이메일은 Cloudtype DB와 무관하게 응답에서만 admin으로 취급 (DB는 수정하지 않음)
+    const forceAdminEmail = 'hwangbee7@gmail.com';
+    const effectiveUserType = (user.email || '').toLowerCase().trim() === forceAdminEmail ? 'admin' : user.user_type;
+
     // JWT 토큰 생성
     const token = jwt.sign(
-      { 
+      {
         userId: user._id,
         email: user.email,
-        user_type: user.user_type
+        user_type: effectiveUserType
       },
       JWT_SECRET,
       { expiresIn: '7d' } // 7일 후 만료
@@ -59,6 +68,7 @@ const login = async (req, res) => {
     // 사용자 정보 (비밀번호 제외)
     const userResponse = user.toObject();
     delete userResponse.password;
+    userResponse.user_type = effectiveUserType;
 
     // 로그인 성공 응답
     res.json({
@@ -72,7 +82,7 @@ const login = async (req, res) => {
   } catch (error) {
     console.error('로그인 오류:', error);
     const o = req.get('Origin');
-    if (o && o.includes('todo-react-8rt5.vercel.app')) {
+    if (o && (o.includes('todo-react-8rt5.vercel.app') || o.includes('todo-react-8rt5-') || /^http:\/\/localhost(:\d+)?$/.test(o))) {
       res.set('Access-Control-Allow-Origin', o);
       res.set('Access-Control-Allow-Credentials', 'true');
     }
@@ -106,9 +116,13 @@ const getCurrentUser = async (req, res) => {
       });
     }
 
+    // 토큰에 담긴 user_type 반영 (hwangbee7@gmail.com 로그인 시 admin 등)
+    const data = user.toObject ? user.toObject() : { ...user };
+    if (req.userType) data.user_type = req.userType;
+
     res.json({ 
       success: true, 
-      data: user 
+      data 
     });
   } catch (error) {
     res.status(500).json({ 

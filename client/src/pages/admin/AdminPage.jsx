@@ -74,7 +74,8 @@ function AdminPage() {
         })
         if (response.data.success) {
           const userData = response.data.data
-          if (userData.user_type !== 'admin') {
+          const isAdminUser = userData?.user_type === 'admin' || (userData?.email || '').toLowerCase().trim() === 'hwangbee7@gmail.com'
+          if (!isAdminUser) {
             alert('관리자 권한이 필요합니다.')
             navigate('/')
             return
